@@ -51,6 +51,24 @@ function clear(p, keepIfLinksTo) {
   console.log(`  moved the existing ${p} to ${backup}`);
 }
 
+const SHIM_MARK = "# explain-deck shim";
+
+/** A launcher on PATH so `explain-deck model` works without typing npx. It
+ *  forwards to the published CLI rather than copying it, so it never goes stale. */
+function installShim() {
+  const dir = path.join(home, ".local", "bin");
+  const file = path.join(dir, "explain-deck");
+  if (fs.existsSync(file) && !fs.readFileSync(file, "utf8").includes(SHIM_MARK)) {
+    console.log(`skipped    ${file} (already exists and is not ours)`);
+    return;
+  }
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(file, `#!/bin/sh\n${SHIM_MARK}\nexec npx -y explain-deck@1 "$@"\n`, { mode: 0o755 });
+  console.log(`installed  ${file}  (run: explain-deck model)`);
+  if (!(process.env.PATH || "").split(path.delimiter).includes(dir))
+    console.log(`           ${dir} is not on your PATH; add it to your shell profile.`);
+}
+
 export function init(argv) {
   const i = argv.indexOf("--agent");
   const only = i >= 0 ? argv[i + 1]?.split(",") : null;
@@ -75,6 +93,8 @@ export function init(argv) {
     if (clear(link, canonical) !== "kept") fs.symlinkSync(canonical, link, "dir");
     console.log(`linked     ${link}  (${name})`);
   }
+
+  installShim();
 
   console.log("\nRestart your agent so it picks up the skill, then ask it to explain something.");
   console.log("The first build downloads the speech model once; after that it runs offline.");

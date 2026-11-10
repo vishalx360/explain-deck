@@ -46,6 +46,12 @@ The MLX dependencies are pinned in `src/tts_mlx.py` with `exclude-newer`, so an
 upstream release can't change the voice under you. If the MLX worker fails to
 start, the build says why and falls back to ONNX.
 
+Run `explain-deck model` to choose a different build (MLX bf16 / 8-bit / 4-bit,
+ONNX fp32 / q8), a default voice and speed. It downloads the weights and saves
+the choice to `~/.config/explain-deck/config.json`. `init` installs an
+`explain-deck` launcher in `~/.local/bin` so the command works without `npx`.
+A deck's own `voice` and `speed` still win.
+
 - `EXPLAIN_TTS=mlx` or `EXPLAIN_TTS=onnx` forces a backend.
 - `EXPLAIN_PYTHON=/path/to/python` uses an existing Python that already has `mlx_audio`, instead of `uv`.
 
@@ -56,6 +62,7 @@ explain-deck build path/to/deck.json            # -> path/to/<folder-name>.html
 explain-deck build path/to/deck.json --folder   # multi-file form, for very long decks
 explain-deck build path/to/deck.json --no-open
 explain-deck init [--agent claude-code,codex]
+explain-deck model [--show]                     # choose and download the speech model
 ```
 
 See [skill/SKILL.md](skill/SKILL.md) for the deck format and the guidance the

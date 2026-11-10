@@ -33,6 +33,9 @@ const CDN = {
 };
 
 const die = (msg) => { console.error(`\nexplain-deck: ${msg}`); process.exit(1); };
+import { loadConfig, modelTag, DEFAULT_ONNX } from "./model.mjs";
+
+const cfg = loadConfig();
 const log = (msg) => process.stderr.write(`  ${msg}\n`);
 
 /* ------------------------------------------------------------------ backends */
@@ -51,7 +54,8 @@ function mlxBackend() {
   const [cmd, args] = process.env.EXPLAIN_PYTHON
     ? [process.env.EXPLAIN_PYTHON, [script]]
     : ["uv", ["run", "--quiet", script]];
-  const child = spawn(cmd, args, { stdio: ["pipe", "pipe", "inherit"] });
+  const env = cfg.mlxModel ? { EXPLAIN_MLX_MODEL: cfg.mlxModel, ...process.env } : process.env;
+  const child = spawn(cmd, args, { stdio: ["pipe", "pipe", "inherit"], env });
 
   let buffer = "";
   const waiters = [];
@@ -97,7 +101,7 @@ async function onnxBackend() {
   const { KokoroTTS } = await import("kokoro-js");
   log("loading model (first run downloads ~330 MB)...");
   const tts = await KokoroTTS.from_pretrained(
-    "onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "fp32", device: "cpu" });
+    "onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: cfg.onnxDtype || DEFAULT_ONNX, device: "cpu" });
   return {
     name: "onnx",
     async synth(text, out, voice, speed) {
@@ -110,12 +114,12 @@ async function onnxBackend() {
 }
 
 async function pickBackend() {
-  const forced = process.env.EXPLAIN_TTS;
+  const forced = process.env.EXPLAIN_TTS || cfg.backend;
   if (forced === "onnx") return onnxBackend();
 
   const appleSilicon = process.platform === "darwin" && process.arch === "arm64";
   const mlxPossible = appleSilicon && (process.env.EXPLAIN_PYTHON || hasUv());
-  if (forced === "mlx" && !mlxPossible) die("EXPLAIN_TTS=mlx needs Apple Silicon and uv (or EXPLAIN_PYTHON)");
+  if (forced === "mlx" && !mlxPossible) die("the mlx backend (EXPLAIN_TTS or `explain-deck model`) needs Apple Silicon and uv (or EXPLAIN_PYTHON)");
   if (!mlxPossible) return onnxBackend();
 
   log("starting mlx worker (first run builds its environment, a minute or two)...");
@@ -257,8 +261,8 @@ export async function build(argv) {
   const deck = JSON.parse(fs.readFileSync(deckPath, "utf8"));
   validate(deck);
 
-  const voice = deck.voice || "af_heart";
-  const speed = deck.speed || 1.0;
+  const voice = deck.voice || cfg.voice || "af_heart";
+  const speed = deck.speed || cfg.speed || 1.0;
   const stepsDir = path.join(outdir, "steps");
   fs.mkdirSync(stepsDir, { recursive: true });
 
@@ -273,7 +277,7 @@ export async function build(argv) {
       wanted.push([si, ti, `s${String(si).padStart(2, "0")}_${String(ti).padStart(2, "0")}.mp3`]);
 
   const keyOf = (say) => crypto.createHash("sha1")
-    .update(`${voice}|${speed}|${say}`).digest("hex").slice(0, 16);
+    .update(`${voice}|${speed}|${say}` + (modelTag(cfg) && `|${modelTag(cfg)}`)).digest("hex").slice(0, 16);
 
   const missing = wanted.filter(([si, ti, name]) => {
     const hit = cache[name];
