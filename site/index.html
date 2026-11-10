@@ -43,8 +43,11 @@
         <a class="byline" href="https://vishalx360.dev"><img src="./icon.svg" width="32" height="32" alt="">Built by Vishal Kumar</a>
       </div>
     </div>
-    <div class="shot cut">
-      <iframe src="./demo.html" title="Live demo: an explain-deck deck explaining how explain-deck works" allow="autoplay; fullscreen" allowfullscreen loading="eager"></iframe>
+    <div class="shot cut" id="shot">
+      <button class="poster" type="button" id="poster" aria-label="Play the demo deck">
+        <img src="./player.jpg" width="2000" height="1138" alt="The explain-deck player showing a diagram slide, with the slide list on the left and the narration line below.">
+        <span class="key key--primary playkey" aria-hidden="true">Play demo</span>
+      </button>
     </div>
   </div>
 </section>
@@ -208,6 +211,18 @@
 </footer>
 
 <script>
+/* hero demo: the screenshot is the poster; Play swaps in the live deck and starts it */
+(() => {
+  const shot = document.getElementById('shot'), poster = document.getElementById('poster'); if (!shot || !poster) return;
+  poster.addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.src = './demo.html'; f.title = 'Live demo: an explain-deck deck explaining how explain-deck works';
+    f.allow = 'autoplay; fullscreen'; f.allowFullscreen = true;
+    f.addEventListener('load', () => { try { f.contentDocument.getElementById('start').click(); f.focus(); } catch (e) {} });
+    shot.replaceChildren(f);
+  });
+})();
+
 /* copy keys */
 document.querySelectorAll('[data-copy]').forEach((b) => {
   b.addEventListener('click', async () => {
