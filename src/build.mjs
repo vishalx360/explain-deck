@@ -33,7 +33,8 @@ const CDN = {
 };
 
 const die = (msg) => { console.error(`\nexplain-deck: ${msg}`); process.exit(1); };
-import { loadConfig, modelTag, DEFAULT_ONNX } from "./model.mjs";
+import { loadConfig, modelTag, activePreset, DEFAULT_ONNX } from "./model.mjs";
+import { recordDeck } from "./store.mjs";
 
 const cfg = loadConfig();
 const log = (msg) => process.stderr.write(`  ${msg}\n`);
@@ -365,9 +366,34 @@ export async function build(argv) {
     + (reused ? `, ${reused} clips reused` : ""));
   console.log(`${(fs.statSync(outFile).size / 1e6).toFixed(1)} MB  ${outFile}`);
 
-  if (!flags.has("--no-open")) {
-    const opener = process.platform === "darwin" ? "open"
-      : process.platform === "win32" ? "start" : "xdg-open";
-    try { execFileSync(opener, [outFile], { stdio: "ignore" }); } catch { /* headless */ }
-  }
+  try {
+    recordDeck({
+      path: outFile, deckJson: deckPath,
+      title: deck.title || slug, pageTitle: deck.page_title || deck.title || slug,
+      slides: deck.slides.length, steps: total, narrationSec: spoken,
+      sizeBytes: fs.statSync(outFile).size, builtAt: new Date().toISOString(),
+      standalone, voice, model: activePreset(cfg)?.id || null,
+    });
+  } catch (e) { log(`could not record this deck in the history (${e.message})`); }
+
+  if (!flags.has("--no-open")) openFile(outFile);
+}
+
+/** Open a file in the default app. Silent when there is no desktop to open it. */
+export function openFile(file) {
+  const opener = process.platform === "darwin" ? "open"
+    : process.platform === "win32" ? "start" : "xdg-open";
+  try { execFileSync(opener, [file], { stdio: "ignore" }); } catch { /* headless */ }
+}
+
+/** Render one sentence with the saved speech settings to a wav file. The
+ *  interactive UI runs this in a child process so a failed backend (which exits
+ *  the process) cannot take the screen down with it.
+ *    explain-deck preview <out.wav> [voice] [speed] */
+export async function preview(argv) {
+  const [out, voice = cfg.voice || "af_heart", speed = cfg.speed || 1] = argv;
+  if (!out) die("usage: explain-deck preview <out.wav> [voice] [speed]");
+  const backend = await pickBackend();
+  await backend.synth("This is how your explainers will sound.", path.resolve(out), voice, Number(speed));
+  backend.close();
 }

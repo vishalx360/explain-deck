@@ -55,6 +55,21 @@ A deck's own `voice` and `speed` still win.
 - `EXPLAIN_TTS=mlx` or `EXPLAIN_TTS=onnx` forces a backend.
 - `EXPLAIN_PYTHON=/path/to/python` uses an existing Python that already has `mlx_audio`, instead of `uv`.
 
+## Interactive UI
+
+Run `explain-deck` with no arguments in a terminal:
+
+- **Decks** lists every explainer built on this machine (newest first): open one in the
+  browser, reveal it in Finder, drop it from the list, or import decks that were built
+  before you had this version (`s`, then a folder).
+- **Models** shows the five speech builds with what is downloaded and how big it is.
+  Pick one to make it the default (it downloads on first use), delete weights you no
+  longer need, change the default voice and speed, or hear a sample (`p`).
+
+Every build records itself in `~/.local/share/explain-deck/index.json`. The UI only
+opens when stdin and stdout are a terminal; in a script or agent, `explain-deck` with
+no arguments still just prints the usage text.
+
 ## CLI
 
 ```bash
@@ -63,6 +78,7 @@ explain-deck build path/to/deck.json --folder   # multi-file form, for very long
 explain-deck build path/to/deck.json --no-open
 explain-deck init [--agent claude-code,codex]
 explain-deck model [--show]                     # choose and download the speech model
+explain-deck                                    # interactive UI: past decks and models
 ```
 
 See [skill/SKILL.md](skill/SKILL.md) for the deck format and the guidance the

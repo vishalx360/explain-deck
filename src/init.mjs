@@ -63,7 +63,18 @@ function installShim() {
     return;
   }
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(file, `#!/bin/sh\n${SHIM_MARK}\nexec npx -y explain-deck@1 "$@"\n`, { mode: 0o755 });
+  // --prefix points npx at a neutral project folder. Without it, running the
+  // launcher inside a folder whose package is itself named explain-deck (this
+  // repo) makes npx use that folder as the local copy and re-run `explain-deck`
+  // from PATH, which is this launcher: an endless loop. The guard stops any
+  // other way of recursing.
+  const prefix = path.join(home, ".cache", "explain-deck", "launcher");
+  const script = `#!/bin/sh\n${SHIM_MARK}\n` +
+    `[ -n "$EXPLAIN_DECK_LAUNCHER" ] && { echo "explain-deck: launcher called itself" >&2; exit 1; }\n` +
+    `export EXPLAIN_DECK_LAUNCHER=1\n` +
+    `mkdir -p "${prefix}"\n` +
+    `exec npx -y --prefix "${prefix}" explain-deck@1 "$@"\n`;
+  fs.writeFileSync(file, script, { mode: 0o755 });
   console.log(`installed  ${file}  (run: explain-deck model)`);
   if (!(process.env.PATH || "").split(path.delimiter).includes(dir))
     console.log(`           ${dir} is not on your PATH; add it to your shell profile.`);
