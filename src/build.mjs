@@ -1,94 +1,58 @@
-#!/usr/bin/env node
 /**
  * deck.json -> a single self-contained HTML explainer.
  *
- *   node build.mjs path/to/deck.json [--folder] [--no-open]
+ *   explain-deck build path/to/deck.json [--folder] [--no-open]
  *
  * Narration is synthesised one clip per step, encoded to mp3, and inlined as
  * data URIs alongside the syntax highlighter and diagram renderer, so the
  * result is one file that plays anywhere with no server and no network.
  *
  * Clips are cached by their narration text: fixing one sentence re-renders one
- * clip. --folder writes the older multi-file form instead, for decks too large
- * to comfortably inline.
+ * clip. --folder writes the multi-file form instead, for decks too large to
+ * comfortably inline.
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_DIR = path.join(HERE, "cache");
+const VENDOR = path.join(HERE, "..", "vendor");
 
-const LIBS = {
-  hljs: "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
+// npx may wipe its own install dir between runs, so anything worth keeping
+// (the speech model) lives in the user's cache, never next to the code.
+const CACHE = path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "explain-deck");
+
+// Used only by --folder decks, which load libraries from the network. Kept in
+// lockstep with the files in vendor/.
+const CDN = {
+  highlight: "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js",
   mermaid: "https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js",
 };
 
-const die = (msg) => { console.error(`\nexplain: ${msg}`); process.exit(1); };
-
-/* ---------------------------------------------------------------- bootstrap */
-
-/** Import a package, installing it into this skill's own node_modules first
- *  run. Doing it lazily matters: the ONNX runtime is ~310 MB and a machine
- *  using the MLX backend never needs it. */
-async function need(spec, why) {
-  // Check the filesystem before importing. A failed bare-specifier import is
-  // cached by the ESM loader for the life of the process, so a retry after
-  // installing would still report the module as missing.
-  const dir = path.join(HERE, "node_modules", ...spec.split("/"));
-  if (!fs.existsSync(dir)) {
-    process.stderr.write(`  installing ${spec} (${why}, one time)...\n`);
-    try {
-      execFileSync("npm", ["install", "--no-audit", "--no-fund", "--silent",
-                           "--prefix", HERE, spec], { stdio: ["ignore", "ignore", "inherit"] });
-    } catch {
-      die(`could not install ${spec}. Is npm on PATH?`);
-    }
-    if (!fs.existsSync(dir)) die(`npm reported success but ${spec} is not in ${HERE}/node_modules`);
-  }
-  return import(spec);
-}
-
-async function libSource(name) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-  const file = path.join(CACHE_DIR, `${name}.min.js`);
-  if (fs.existsSync(file)) return fs.readFileSync(file, "utf8");
-  process.stderr.write(`  fetching ${name} (one time)...\n`);
-  const res = await fetch(LIBS[name]);
-  if (!res.ok) die(`could not fetch ${name}: HTTP ${res.status}`);
-  const src = await res.text();
-  fs.writeFileSync(file, src);
-  return src;
-}
+const die = (msg) => { console.error(`\nexplain-deck: ${msg}`); process.exit(1); };
+const log = (msg) => process.stderr.write(`  ${msg}\n`);
 
 /* ------------------------------------------------------------------ backends */
 
-/** Any python that can import mlx_audio. Probed, never hardcoded, so this
- *  stays a happy accident on machines that have it rather than a dependency. */
-function findMlxPython() {
-  if (process.platform !== "darwin" || process.arch !== "arm64") return null;
-  const candidates = [];
-  if (process.env.EXPLAIN_PYTHON) candidates.push(process.env.EXPLAIN_PYTHON);
-  try {
-    const dir = execFileSync("uv", ["tool", "dir", "--color", "never"],
-                             { encoding: "utf8" }).trim();
-    candidates.push(path.join(dir, "mlx-audio", "bin", "python"));
-  } catch { /* uv not installed; fine */ }
-  candidates.push("python3");
-  for (const py of candidates) {
-    try {
-      execFileSync(py, ["-c", "import mlx_audio"], { stdio: "ignore" });
-      return py;
-    } catch { /* try the next one */ }
-  }
-  return null;
-}
+const hasUv = () => {
+  try { execFileSync("uv", ["--version"], { stdio: "ignore" }); return true; }
+  catch { return false; }
+};
 
-function mlxBackend(python) {
-  const child = spawn(python, [path.join(HERE, "tts_mlx.py")],
-                      { stdio: ["pipe", "pipe", "inherit"] });
+/** Kokoro through MLX on Apple Silicon, ~17x realtime with the bf16 weights.
+ *  `uv run` reads the dependency block at the top of tts_mlx.py and builds a
+ *  cached environment on first use, so there is nothing for the user to set up.
+ *  EXPLAIN_PYTHON points at a python that already has mlx_audio instead. */
+function mlxBackend() {
+  const script = path.join(HERE, "tts_mlx.py");
+  const [cmd, args] = process.env.EXPLAIN_PYTHON
+    ? [process.env.EXPLAIN_PYTHON, [script]]
+    : ["uv", ["run", "--quiet", script]];
+  const child = spawn(cmd, args, { stdio: ["pipe", "pipe", "inherit"] });
+
   let buffer = "";
   const waiters = [];
   child.stdout.on("data", (chunk) => {
@@ -101,18 +65,22 @@ function mlxBackend(python) {
       let msg;
       try { msg = JSON.parse(line); }
       catch { die(`tts backend wrote non-JSON on its protocol channel: ${line.slice(0, 120)}`); }
-      waiters.shift()(msg);
+      waiters.shift().resolve(msg);
     }
   });
-  const request = (obj) => new Promise((resolve) => {
-    waiters.push(resolve);
+  // A worker that dies leaves its waiters hanging forever; fail them instead.
+  const fail = (why) => { while (waiters.length) waiters.shift().reject(new Error(why)); };
+  child.on("error", (e) => fail(e.message));
+  child.on("exit", (code) => fail(`mlx worker exited with code ${code}`));
+
+  const request = (obj) => new Promise((resolve, reject) => {
+    waiters.push({ resolve, reject });
     if (obj) child.stdin.write(JSON.stringify(obj) + "\n");
   });
-  const ready = request(null);           // the worker announces itself once loaded
   return {
     name: "mlx",
+    ready: request(null),            // the worker announces itself once loaded
     async synth(text, out, voice, speed) {
-      await ready;
       const r = await request({ text, out, voice, speed });
       if (!r.ok) die(`tts failed: ${r.error}`);
       return r.duration;
@@ -121,11 +89,15 @@ function mlxBackend(python) {
   };
 }
 
+/** Kokoro through ONNX, everywhere. fp32 is the unquantised model: the q8
+ *  build is a quarter of the size but audibly further from the original. */
 async function onnxBackend() {
-  const { KokoroTTS } = await need("kokoro-js", "portable text-to-speech");
-  process.stderr.write("  loading model (first run downloads ~92 MB)...\n");
+  const { env } = await import("@huggingface/transformers");
+  env.cacheDir = path.join(CACHE, "models");
+  const { KokoroTTS } = await import("kokoro-js");
+  log("loading model (first run downloads ~330 MB)...");
   const tts = await KokoroTTS.from_pretrained(
-    "onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "q8", device: "cpu" });
+    "onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "fp32", device: "cpu" });
   return {
     name: "onnx",
     async synth(text, out, voice, speed) {
@@ -140,13 +112,22 @@ async function onnxBackend() {
 async function pickBackend() {
   const forced = process.env.EXPLAIN_TTS;
   if (forced === "onnx") return onnxBackend();
-  if (forced === "mlx") {
-    const py = findMlxPython();
-    if (!py) die("EXPLAIN_TTS=mlx but no python with mlx_audio was found");
-    return mlxBackend(py);
+
+  const appleSilicon = process.platform === "darwin" && process.arch === "arm64";
+  const mlxPossible = appleSilicon && (process.env.EXPLAIN_PYTHON || hasUv());
+  if (forced === "mlx" && !mlxPossible) die("EXPLAIN_TTS=mlx needs Apple Silicon and uv (or EXPLAIN_PYTHON)");
+  if (!mlxPossible) return onnxBackend();
+
+  log("starting mlx worker (first run builds its environment, a minute or two)...");
+  const mlx = mlxBackend();
+  try {
+    await mlx.ready;
+    return mlx;
+  } catch (e) {
+    if (forced === "mlx") die(`mlx backend failed: ${e.message}`);
+    log(`mlx backend failed (${e.message}), falling back to onnx`);
+    return onnxBackend();
   }
-  const py = findMlxPython();
-  return py ? mlxBackend(py) : onnxBackend();
 }
 
 /* ------------------------------------------------------------------- audio */
@@ -190,7 +171,7 @@ function readWav(file) {
 }
 
 async function toMp3(wavFile, mp3File) {
-  const { default: lamejs } = await need("@breezystack/lamejs", "mp3 encoding");
+  const { default: lamejs } = await import("@breezystack/lamejs");
   const { channels, sampleRate, pcm, duration } = readWav(wavFile);
   const enc = new lamejs.Mp3Encoder(channels, sampleRate, 64);
   const chunks = [];
@@ -266,11 +247,10 @@ function validate(deck) {
 
 /* -------------------------------------------------------------------- main */
 
-async function main() {
-  const argv = process.argv.slice(2);
+export async function build(argv) {
   const args = argv.filter((a) => !a.startsWith("-"));
   const flags = new Set(argv.filter((a) => a.startsWith("-")));
-  if (!args.length) die("usage: node build.mjs path/to/deck.json [--folder] [--no-open]");
+  if (!args.length) die("usage: explain-deck build path/to/deck.json [--folder] [--no-open]");
 
   const deckPath = path.resolve(args[0]);
   const outdir = path.dirname(deckPath);
@@ -304,7 +284,7 @@ async function main() {
   let backend = null;
   if (missing.length) {
     backend = await pickBackend();
-    process.stderr.write(`  backend: ${backend.name}, ${missing.length} of ${total} clips to render\n`);
+    log(`backend: ${backend.name}, ${missing.length} of ${total} clips to render`);
   }
 
   const live = {};
@@ -327,7 +307,7 @@ async function main() {
         die(`${name}: backend reported ${claimed.toFixed(2)}s but the encoded clip is `
           + `${step.duration.toFixed(2)}s - wav format mismatch`);
       done++;
-      process.stderr.write(`  [${done}/${missing.length}] ${name}  ${step.duration.toFixed(1)}s\n`);
+      log(`[${done}/${missing.length}] ${name}  ${step.duration.toFixed(1)}s`);
     }
     step.audio = `steps/${name}`;
     live[name] = { key, duration: step.duration };
@@ -340,28 +320,35 @@ async function main() {
   fs.writeFileSync(cachePath, JSON.stringify(live, null, 1));
 
   const standalone = !flags.has("--folder");
-  const needsMermaid = deck.slides.some((s) => s.kind === "mermaid");
-  const needsHljs = deck.slides.some((s) => s.kind === "code");
+  const used = [
+    deck.slides.some((s) => s.kind === "code") && "highlight",
+    deck.slides.some((s) => s.kind === "mermaid") && "mermaid",
+  ].filter(Boolean);
 
   let libs;
   if (standalone) {
-    const parts = [];
-    if (needsHljs) parts.push(`<script>${await libSource("hljs")}</script>`);
-    if (needsMermaid) parts.push(`<script>${await libSource("mermaid")}</script>`);
-    libs = parts.join("\n");
+    // Mermaid's source holds a literal U+FFFD (its HTML-entity decoder returns
+    // it for invalid code points). As a JS escape it means the same thing in a
+    // string or regex, and the page stays free of a character that a publish
+    // check reads as text lost in an edit.
+    libs = used.map((n) => `<script>${fs.readFileSync(path.join(VENDOR, `${n}.min.js`), "utf8")}</script>`)
+      .join("\n").replace(/�/g, "\\uFFFD");
     for (const [si, ti, name] of wanted) {
       const b64 = fs.readFileSync(path.join(stepsDir, name)).toString("base64");
       deck.slides[si].steps[ti].audio = `data:audio/mpeg;base64,${b64}`;
     }
   } else {
-    libs = [needsHljs && `<script src="${LIBS.hljs}"></script>`,
-            needsMermaid && `<script src="${LIBS.mermaid}"></script>`]
-      .filter(Boolean).join("\n");
+    libs = used.map((n) => `<script src="${CDN[n]}"></script>`).join("\n");
   }
 
   const template = fs.readFileSync(path.join(HERE, "player.html"), "utf8");
   const blob = JSON.stringify(deck).replace(/<\//g, "<\\/");
+  // The <title> is the name a browser tab and a hosted artifact show, so it
+  // comes from the deck: `page_title` (short) when given, else `title`.
+  const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const pageTitle = escapeHtml(deck.page_title || deck.title || "Explainer");
   const html = template.replace("<!--LIBS-->", () => libs)
+                       .replace("<title>Explainer</title>", () => `<title>${pageTitle}</title>`)
                        .replace("/*DECK*/null", () => blob);
 
   const slug = path.basename(outdir).replace(/[^\w.-]+/g, "-");
@@ -380,5 +367,3 @@ async function main() {
     try { execFileSync(opener, [outFile], { stdio: "ignore" }); } catch { /* headless */ }
   }
 }
-
-main();

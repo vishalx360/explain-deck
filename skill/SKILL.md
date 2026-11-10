@@ -1,6 +1,6 @@
 ---
 name: explain
-description: Turn an explanation into a narrated slide deck that plays itself in the browser - spoken audio per step, synced to highlighted code, mermaid diagrams, folder trees and screenshots, exported as one self-contained HTML file. Use this whenever the user runs /explain, or asks to be walked through / talked through / shown how something works, wants a narrated or visual or audio explanation, a video or presentation or walkthrough of code, a plan, a diff, a PR, or a file. Prefer this over a wall of text whenever the user says they want to see or hear the explanation rather than read it.
+description: Turn an explanation into a narrated slide deck that plays itself in the browser - spoken audio per step, synced to highlighted code, mermaid diagrams, folder trees and screenshots, exported as one self-contained HTML file. Use this whenever the user runs /explain, or asks to be walked through / talked through / shown how something works, wants a narrated or visual or audio explanation, a video or presentation or walkthrough of code, a plan, a diff, a PR, or a file. Prefer this over a wall of text whenever the user says they want to see or hear the explanation rather than read it. Also use it when the user asks to host, share or publish an explainer deck or presentation as an artifact (see Hosting a deck as an artifact).
 ---
 
 # Explain
@@ -25,9 +25,9 @@ You write `deck.json`. The build script does the rest.
 2. Write `deck.json` into a new folder, one folder per explainer. The output is
    named after that folder, so `2026-05-04-rx-ingestion/` gives you
    `2026-05-04-rx-ingestion.html`.
-3. Build it with the script that sits next to this file:
+3. Build it with the `explain-deck` CLI (npx fetches it; nothing to install):
    ```
-   node <skill-dir>/build.mjs <folder>/deck.json
+   npx -y explain-deck@1 build <folder>/deck.json
    ```
    Add `--no-open` when you are testing, in a subagent, or otherwise not sitting
    in front of the user's screen. Add `--folder` to emit the multi-file form
@@ -36,12 +36,12 @@ You write `deck.json`. The build script does the rest.
 4. Tell the user the path to the HTML file in one line. Don't summarise the deck
    back at them in text - the deck is the deliverable, and repeating it defeats
    the point. Worth mentioning once: space pauses, arrow keys navigate, `S`
-   toggles the sidebar, `T` changes theme, `F` enters full screen, `?` opens
+   toggles the sidebar, `T` changes theme, `M` (or the mute button) mutes the narration, `F` enters full screen, `?` opens
    help, and every slide is clickable in the sidebar.
 
-**First run takes longer.** The script installs what it needs into its own
-directory and downloads a speech model. That is a one-time cost of a minute or
-two; after that it only ever re-renders clips whose words changed, so fixing a
+**First run takes longer.** npx downloads the CLI and the build downloads a
+speech model into `~/.cache`. That is a one-time cost of a minute or two (on
+Apple Silicon with `uv`, it also builds the fast MLX environment); after that it only ever re-renders clips whose words changed, so fixing a
 sentence rebuilds in well under a second. Say so if the user is watching a first
 build and wondering why it is slow.
 
@@ -94,7 +94,10 @@ slicing should be mechanical.
 }
 ```
 
-`voice` and `speed` are optional and apply to the whole deck. The default voice
+`voice`, `speed` and `page_title` are optional and apply to the whole deck.
+`page_title` is the page's `<title>` — the browser tab and the name a hosted
+artifact shows — so make it a short name of two to four words ("RT-210 redesign
+cycle"); without it the `title` is used. The default voice
 is `af_heart`; there are 28 Kokoro voices, `af_*` and `bf_*` female, `am_*` and
 `bm_*` male, with `a` American and `b` British.
 
@@ -193,3 +196,43 @@ do with it.
 
 Resist the urge to cover everything. A deck that explains three things well is
 worth more than one that mentions nine.
+
+## Hosting a deck as an artifact
+
+When the user asks to host, share or publish a presentation ("host this in an
+artifact", "put the deck online"), publish the built standalone HTML with the
+`Artifact` tool. Everything is inlined, so it is one file and needs no
+`files` map.
+
+1. **Find the file.** It is the `<folder>/<folder>.html` the build printed. If
+   the user names a folder or an older deck, use the `.html` in it; never
+   publish `deck.json` or the `steps/` clips.
+2. **Check the size.** `ls -la`: an artifact page may be at most 16 MB. A
+   standalone deck is usually 5–8 MB. If it is over, rebuild with `--folder`
+   and publish `index.html` with every `steps/*.mp3` (and any `img/*`) in
+   `files`, mapping each published path to its source path.
+3. **Check the name.** The artifact is named by the page's `<title>`
+   (`grep -o '<title>[^<]*' <file>`). Decks built before `page_title` existed
+   say "Explainer": add a short `page_title` to `deck.json` and rebuild — the
+   audio is cached, so it takes seconds — rather than editing the HTML.
+4. **Read before you publish.** The artifact rules require reading a file you
+   did not just write; a deck you built this session counts as written, an
+   older one does not. Read `deck.json` (the HTML is mostly inlined audio) to
+   know what you are sharing.
+5. **A refused publish for U+FFFD.** The artifact check refuses a page that
+   contains the replacement character. Mermaid's inlined source has one, and
+   the build writes it as `\uFFFD`, so a deck built before 2026-10-22 just
+   needs a rebuild. If the character is in `deck.json` itself, fix the
+   narration text instead.
+6. **Publish.** `Artifact` with `file_path` = the HTML, `icon` = `slides` (or
+   `presentation`), and a one-sentence `description` of what the deck explains.
+   To update a deck already hosted, publish the same file path again (same
+   session) or pass its `url` (another session) — the link stays the same.
+7. **Tell the user** the link in one line, and that it is private until they
+   share it from the page's Share menu. If the deck shows client material
+   (customer documents, screenshots of client data), say it is for internal
+   sharing only.
+
+The player works inside the artifact frame unchanged: space pauses, arrow keys
+move, `M` mutes, `S` shows the slide list, `F` goes full screen.
+

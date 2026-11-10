@@ -1,11 +1,27 @@
 #!/usr/bin/env python3
-"""Optional fast text-to-speech backend for Apple Silicon.
+# /// script
+# requires-python = "==3.11.*"
+# dependencies = [
+#   "mlx-audio==0.5.1",
+#   "misaki[en]==0.9.4",
+#   "numpy<2",
+#   "spacy>=3.8,<4",
+#   "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+# ]
+# [tool.uv]
+# prerelease = "allow"
+# exclude-newer = "2026-11-01T00:00:00Z"
+# ///
+"""Fast text-to-speech backend for Apple Silicon, run with `uv run`.
+
+The block above is the whole install recipe: uv reads it, builds a cached
+environment on first use, and reuses it after. exclude-newer freezes the
+resolution so a new upstream release can never quietly change the voice.
+misaki needs the spaCy English model, which it would otherwise try to pip
+install at runtime - and a uv environment has no pip.
 
 Reads one JSON request per line on stdin and answers one JSON line on stdout,
-so the Kokoro weights load once for a whole deck instead of once per clip. The
-parent process owns this one: it starts on the first clip and exits with the
-build. There is no daemon, no socket and no shared state, which is what keeps
-this backend a detail of the skill rather than something to install separately.
+so the Kokoro weights load once for a whole deck instead of once per clip.
 
     {"text": "...", "out": "/abs/path.wav", "voice": "af_heart", "speed": 1.0}
  -> {"ok": true, "duration": 4.125}

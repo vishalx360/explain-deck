@@ -19,13 +19,19 @@
   color-scheme:dark;
 }
 :root[data-theme="light"]{
-  --bg:#f7f9fc; --panel:#ffffff; --line:#dce2ea; --ink:#172033; --dim:#667085;
-  --accent:#2563eb; --accent-ink:#ffffff; --lit:#e8f0ff; --litbar:#2563eb;
-  --toc-on:#edf3ff; --edge-bg:#f7f9fc; --error:#9f1239; --error-bg:#fff1f2;
-  --error-line:#fecdd3; --spot:rgba(23,32,51,.42);
-  --syntax-red:#cf222e; --syntax-blue:#0a3069; --syntax-comment:#6e7781;
-  --syntax-cyan:#0550ae; --syntax-purple:#8250df; --syntax-orange:#953800;
-  --shadow:0 18px 50px rgba(23,32,51,.16); --overlay:rgba(23,32,51,.28);
+  /* Light theme: white with #f6f6f6 bands,
+     #212529 ink, Creato Display, deep blue #0047ab, mint #e4fcf7, the logo's
+     mint-blue-gold gradient and the navy button gradient. */
+  --bg:#ffffff; --panel:#f6f6f6; --line:#d9d9d9; --ink:#212529; --dim:#6c6e73;
+  --accent:#0047ab; --accent-ink:#ffffff; --lit:#e4fcf7; --litbar:#056beb;
+  --toc-on:#e5f2fa; --edge-bg:#ffffff; --error:#9f1239; --error-bg:#fff1f2;
+  --error-line:#fecdd3; --spot:rgba(33,37,41,.42);
+  --syntax-red:#b42318; --syntax-blue:#052656; --syntax-comment:#8b8c90;
+  --syntax-cyan:#0047ab; --syntax-purple:#6941c6; --syntax-orange:#9a5b00;
+  --shadow:0 18px 50px rgba(5,38,86,.12); --overlay:rgba(33,37,41,.28);
+  --sans:"Creato Display",-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  --brand-gradient:linear-gradient(90deg,#95dfba 0%,#62a4d8 25%,#c7c445 50%,#62a4d8 75%,#95dfba 98%);
+  --brand-button:linear-gradient(90deg,#000000 0%,#052656 50%,#094daf 100%);
   color-scheme:light;
 }
 *{box-sizing:border-box}
@@ -136,7 +142,7 @@ pre.code .src{white-space:pre;flex:1}
 .transport{display:flex;align-items:center;gap:6px;justify-self:center}
 .transport [data-act="play"]{min-width:74px;color:var(--accent);border-color:var(--accent)}
 #pos{justify-self:start}
-#rate{justify-self:end}
+.ctl-end{display:flex;align-items:center;gap:6px;justify-self:end}
 
 #help{width:min(440px,calc(100vw - 32px));background:var(--panel);color:var(--ink);
   border:1px solid var(--line);border-radius:16px;padding:0;box-shadow:var(--shadow)}
@@ -160,6 +166,13 @@ kbd{font:500 12px var(--mono);color:var(--ink);background:var(--bg);border:1px s
   padding:13px 30px;font:600 15px var(--sans);cursor:pointer}
 #cover button:disabled{opacity:.45;cursor:not-allowed}
 #cover.gone{display:none}
+/* Brand typography and accents, light theme only. */
+:root[data-theme="light"] h2.title{font-weight:300;letter-spacing:.01em}
+:root[data-theme="light"] #cover{background:linear-gradient(45deg,#e9fdf8 0%,#ffffff 60%)}
+:root[data-theme="light"] #cover h1{font-weight:300;font-size:44px;letter-spacing:.01em}
+:root[data-theme="light"] #cover button{background:var(--brand-button);color:#fff}
+:root[data-theme="light"] #app{border-top:3px solid transparent;border-image:var(--brand-gradient) 1}
+
 
 @media (max-width:760px){
   #toc{position:fixed;inset:0 auto 0 0;z-index:7;box-shadow:12px 0 32px rgba(0,0,0,.2)}
@@ -205,7 +218,10 @@ kbd{font:500 12px var(--mono);color:var(--ink);background:var(--bg);border:1px s
         <button data-act="play">pause</button>
         <button data-act="next" title="next step" aria-label="next step">&rarr;</button>
       </div>
-      <button data-act="rate" id="rate" title="playback speed" aria-label="change playback speed">1&times;</button>
+      <div class="ctl-end">
+        <button data-act="mute" id="mute" aria-pressed="false" title="mute narration (M)" aria-label="mute narration">mute</button>
+        <button data-act="rate" id="rate" title="playback speed" aria-label="change playback speed">1&times;</button>
+      </div>
     </div>
   </main>
 </div>
@@ -222,6 +238,7 @@ kbd{font:500 12px var(--mono);color:var(--ink);background:var(--bg);border:1px s
       <span>Previous or next step</span><kbd>&larr; &rarr;</kbd>
       <span>Previous or next slide</span><kbd>&uarr; &darr;</kbd>
       <span>Change playback speed</span><kbd>[ ]</kbd>
+      <span>Mute or unmute narration</span><kbd>M</kbd>
       <span>Show or hide slides</span><kbd>S</kbd>
       <span>Switch theme</span><kbd>T</kbd>
       <span>Enter full screen</span><kbd>F</kbd>
@@ -263,13 +280,18 @@ try {
 function mermaidTheme(){
   if (!window.mermaid) return;
   const css = getComputedStyle(document.documentElement);
-  mermaid.initialize({startOnLoad:false, theme:theme === 'dark' ? 'dark' : 'default',
+  // themeVariables only take effect under mermaid's 'base' theme; 'default'
+  // keeps its own purple nodes whatever is passed.
+  mermaid.initialize({startOnLoad:false, theme:theme === 'dark' ? 'dark' : 'base',
     htmlLabels:false, flowchart:{htmlLabels:false, curve:'basis'},
     themeVariables:{background:css.getPropertyValue('--bg').trim(),
       primaryColor:css.getPropertyValue('--panel').trim(),
       primaryTextColor:css.getPropertyValue('--ink').trim(),
       primaryBorderColor:css.getPropertyValue('--line').trim(),
       lineColor:css.getPropertyValue('--dim').trim(), fontSize:'15px',
+      fontFamily:css.getPropertyValue('--sans').trim(),
+      ...(theme === 'light' ? {primaryColor:'#e5f2fa', primaryBorderColor:'#0047ab',
+        secondaryColor:'#e4fcf7', tertiaryColor:'#f6f6f6'} : {}),
       edgeLabelBackground:css.getPropertyValue('--edge-bg').trim()}});
 }
 
@@ -326,6 +348,23 @@ function setRate(r){
   au.playbackRate = r;
   document.getElementById('rate').textContent = r + '\u00d7';
   try { localStorage.setItem('explain-rate', r); } catch (e) {}
+}
+
+/* Mute keeps the clip playing silently rather than pausing it: a step advances
+   when its clip ends, so muted audio still carries the deck forward. `muted`
+   survives a new src, so it is set once, not per clip. */
+let muted = false;
+try { muted = localStorage.getItem('explain-muted') === '1'; } catch (e) {}
+
+function setMuted(m){
+  muted = m;
+  au.muted = m;
+  const btn = document.getElementById('mute');
+  btn.textContent = m ? 'unmute' : 'mute';
+  btn.setAttribute('aria-pressed', String(m));
+  btn.setAttribute('aria-label', m ? 'unmute narration' : 'mute narration');
+  btn.title = (m ? 'unmute' : 'mute') + ' narration (M)';
+  try { localStorage.setItem('explain-muted', m ? '1' : '0'); } catch (e) {}
 }
 
 function bumpRate(dir){
@@ -509,6 +548,7 @@ document.addEventListener('click', e => {
   const act = control.dataset.act;
   if (act === 'next') next();
   else if (act === 'prev') prev();
+  else if (act === 'mute') setMuted(!muted);
   else if (act === 'rate') setRate(RATES[(RATES.indexOf(rate) + 1) % RATES.length]);
   else if (act === 'toc') setToc(!tocHidden);
   else if (act === 'theme') setTheme(theme === 'dark' ? 'light' : 'dark', true);
@@ -538,13 +578,14 @@ document.addEventListener('keydown', e => {
   else if (k.toLowerCase() === 's') setToc(!tocHidden);
   else if (k.toLowerCase() === 't') setTheme(theme === 'dark' ? 'light' : 'dark', true);
   else if (k.toLowerCase() === 'f') toggleFullscreen();
+  else if (k.toLowerCase() === 'm') setMuted(!muted);
   else if (k === '?') setHelp(true);
 });
 
 /* Build the sidebar and cover, then wait for the click Chrome requires before
    it will let a page play sound on its own. */
 (function init(){
-  document.title = D.title || 'Explainer';
+  document.title = D.page_title || D.title || 'Explainer';
   document.getElementById('covertitle').textContent = D.title || 'Explainer';
   const steps = S.reduce((n, s) => n + s.steps.length, 0);
   const secs = S.reduce((n, s) => n + s.steps.reduce((m, t) => m + (t.duration || 0), 0), 0);
@@ -564,6 +605,7 @@ document.addEventListener('keydown', e => {
   syncFullscreen();
 
   setRate(RATES.includes(rate) ? rate : 1);
+  setMuted(muted);
 
   document.getElementById('start').addEventListener('click', () => {
     document.getElementById('cover').classList.add('gone');
