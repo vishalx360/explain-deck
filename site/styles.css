@@ -50,8 +50,8 @@
 .shot { padding: var(--space-xs); background: var(--color-paper); }
 .poster { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
 .poster { overflow: hidden; border-radius: 4px; }
-.poster img { filter: blur(4px); transform: scale(1.03); transition: filter var(--dur-short) var(--ease-out); }
-.poster:hover img { filter: blur(2px); }
+.poster img { filter: blur(1.5px); transform: scale(1.02); transition: filter var(--dur-short) var(--ease-out); }
+.poster:hover img { filter: blur(0.5px); }
 .poster img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: var(--color-paper-2); border-radius: 4px; border: var(--rule-hair) solid var(--color-rule); }
 .playkey { position: absolute; inset: 0; margin: auto; width: max-content; height: max-content; min-height: 52px; padding-inline: var(--space-xl); font-size: var(--text-md); }
 .poster:hover .playkey { transform: translateY(-1px); }
