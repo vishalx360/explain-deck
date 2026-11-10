@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>explain-deck: narrated slide decks from your agent</title>
+<meta name="description" content="An agent skill and CLI that turns an explanation into one self-contained HTML deck that narrates itself, lights up the code it is talking about, and advances on its own.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="container">
+    <a class="wordmark" href="#top">explain-deck</a>
+    <span class="links" style="display:contents">
+      <a href="#how">How it works</a>
+      <a href="#ui">Terminal UI</a>
+      <a href="#kinds">Slides</a>
+      <a href="#speech">Speech</a>
+    </span>
+    <a class="key key--sm" href="https://github.com/vishalx360/explain-deck">GitHub</a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <canvas class="field" id="field" aria-hidden="true"></canvas>
+  <div class="container">
+    <div>
+      <h1>Hear the explanation, not read it</h1>
+      <p class="lead">Your agent turns an answer into a narrated deck that plays itself.</p>
+      <div class="actions">
+        <div class="command cut graphite">
+          <code><span class="prompt">$ </span>npx -y explain-deck@latest init</code>
+          <button class="key key--primary key--sm" type="button" id="copy" data-copy="npx -y explain-deck@latest init">Copy</button>
+        </div>
+        <p class="alt">Needs Node 18 or newer. Then ask your agent <a href="#how">/explain-deck</a>.</p>
+        <a class="byline" href="https://vishalx360.dev"><img src="./icon.svg" width="32" height="32" alt="">Built by Vishal Kumar</a>
+      </div>
+    </div>
+    <div class="shot cut">
+      <img src="./player.jpg" width="2000" height="1138" alt="The explain-deck player showing a diagram slide, with the slide list on the left, two nodes lit, and the narration line and controls below.">
+    </div>
+  </div>
+</section>
+
+<section class="band" id="how">
+  <div class="container">
+    <div class="head">
+      <h2>One question in, one file out</h2>
+    </div>
+    <div class="ba">
+      <div class="pane cut graphite">
+        <span class="label">You ask</span>
+        <pre><span class="token">/explain-deck</span> how does the ingestion pipeline choose a parser?</pre>
+        <span class="label">The agent reads the real code, writes a deck.json, and builds</span>
+        <pre class="muted-g">$ npx -y explain-deck@1 build ingestion/deck.json
+<span class="token">ingestion/ingestion.html</span></pre>
+      </div>
+      <div class="pane cut">
+        <h3>A deck that plays itself</h3>
+        <ol>
+          <li>It speaks one step.</li>
+          <li>It lights the lines or diagram nodes that step is about.</li>
+          <li>It moves on when the audio ends.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="ui">
+  <div class="container split split--ui">
+    <div>
+      <h2>Every deck you have built, in one terminal screen</h2>
+      <p class="lead" style="margin-top:var(--space-lg);color:var(--color-ink-2)">Run <code class="inline">explain-deck</code> with no arguments.</p>
+      <dl class="uikeys">
+        <dt>Decks</dt><dd>Open one in the browser, reveal it in Finder, drop it from the list, or import older decks from a folder.</dd>
+        <dt>Models</dt><dd>See which of the five Kokoro builds are downloaded. Switch, delete, change voice and speed, or play a sample.</dd>
+      </dl>
+    </div>
+    <div class="tui cut graphite" id="tui">
+      <div class="tabs" role="tablist" aria-label="Terminal UI screens">
+        <button class="tab" role="tab" type="button" id="tab-decks" aria-controls="p-decks" aria-selected="true">Decks</button>
+        <button class="tab" role="tab" type="button" id="tab-models" aria-controls="p-models" aria-selected="false">Models</button>
+      </div>
+      <div class="panel" role="tabpanel" id="p-decks" aria-labelledby="tab-decks">
+<pre class="screen"><span class="muted-g">  TITLE                      SLIDES  NARRATION  SIZE     BUILT</span>
+<span class="sel">› How a parser is chosen     8       4m 12s     6.1 MB   today    </span>
+  Why the cache key changed  6       3m 05s     4.7 MB   yesterday
+  Reading the billing diff   9       5m 40s     7.3 MB   3 days ago</pre>
+<p class="hint muted-g">sample rows. ↑↓ move, enter open, f reveal, d remove, s import folder, tab switch, q quit</p>
+      </div>
+      <div class="panel" role="tabpanel" id="p-models" aria-labelledby="tab-models">
+<pre class="screen"><span class="muted-g">  BUILD       STATE               SIZE     NOTE</span>
+<span class="sel">› MLX bf16    ● active (default)  355 MB   best quality, fastest      </span>
+  MLX 8-bit   downloaded          318 MB   near-identical
+  MLX 4-bit   not downloaded      -        audibly rougher
+  ONNX fp32   not downloaded      -        any machine, ~330 MB
+  ONNX q8     not downloaded      -        a quarter of the size
+
+  Voice <b>af_heart</b>   Speed <b>1</b></pre>
+<p class="hint muted-g">↑↓ move, enter use, x delete, v voice, e speed, p preview, tab switch, q quit</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="kinds">
+  <div class="container">
+    <div class="head">
+      <h2>Five kinds of slide, each with something to point at</h2>
+    </div>
+    <table class="ledger">
+      <thead><tr><th scope="col">Slide</th><th scope="col">Written as</th><th scope="col">What a step lights</th></tr></thead>
+      <tbody>
+        <tr><td>code</td><td class="mono"><code>"lit": "3,7,10-12"</code></td><td>Line numbers inside the snippet</td></tr>
+        <tr class="on"><td>mermaid</td><td class="mono"><code>"lit": ["selector waits"]</code></td><td>Nodes, by id or a fragment of the label</td></tr>
+        <tr><td>bullets</td><td class="mono"><code>"lit": [1]</code></td><td>One point, the rest stay in view</td></tr>
+        <tr><td>tree</td><td class="mono"><code>"lit": "2-4"</code></td><td>Rows of a folder tree</td></tr>
+        <tr><td>image</td><td class="mono"><code>"lit": [10, 20, 40, 30]</code></td><td>A region of a screenshot</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="band" id="speech">
+  <div class="container split">
+    <div>
+      <h2>Spoken on your machine</h2>
+      <p class="lead" style="margin-top:var(--space-lg);color:var(--color-ink-2)">Kokoro-82M runs locally, so your code never leaves it.</p>
+      <p class="label" style="margin-top:var(--space-xl);font:500 var(--text-sm)/1 var(--font-display);color:var(--color-muted)">init installs the skill into</p>
+      <ul class="agents" aria-label="Agents it installs into">
+        <li>Claude Code</li><li>Codex</li><li>Cursor</li><li>Gemini CLI</li><li>GitHub Copilot</li><li>OpenCode</li><li>Windsurf</li><li>Amp</li>
+      </ul>
+    </div>
+    <div>
+      <div class="engine cut">
+        <span class="label">MLX, on Apple Silicon with uv</span>
+        <div class="big">17×</div>
+        <span class="label">realtime</span>
+        <div class="meter" aria-hidden="true"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+      </div>
+      <div class="engine cut">
+        <span class="label">ONNX, everywhere else</span>
+        <div class="big">2.5×</div>
+        <span class="label">realtime</span>
+        <div class="meter" aria-hidden="true"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band close">
+  <div class="container">
+    <div>
+      <h2>Install once, then just ask</h2>
+      <div class="command cut graphite">
+        <code><span class="prompt">$ </span>npx -y explain-deck@latest init</code>
+        <button class="key key--primary key--sm" type="button" data-copy="npx -y explain-deck@latest init">Copy</button>
+      </div>
+    </div>
+    <div class="keys cut">
+      <div><span class="keycap">space</span><span class="t">pause</span></div>
+      <div><span class="keycap">← →</span><span class="t">move between steps</span></div>
+      <div><span class="keycap">M</span><span class="t">mute, and the deck keeps advancing</span></div>
+      <div><span class="keycap">S</span><span class="t">show the slide list</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <div class="mast">explain-deck</div>
+    <div class="row">
+      <span><a class="byline" href="https://vishalx360.dev"><img src="./icon.svg" width="24" height="24" alt="">Built by Vishal Kumar</a></span>
+      <a href="https://github.com/vishalx360/explain-deck">GitHub</a>
+      <a href="https://www.npmjs.com/package/explain-deck">npm</a>
+      <span>MIT licensed. Kokoro is Apache 2.0.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* copy keys */
+document.querySelectorAll('[data-copy]').forEach((b) => {
+  b.addEventListener('click', async () => {
+    const t = b.dataset.copy, old = b.textContent;
+    try { await navigator.clipboard.writeText(t); b.textContent = 'Copied'; }
+    catch { b.textContent = 'Press Ctrl+C'; const r = document.createRange(); r.selectNodeContents(b.closest('.command').querySelector('code')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    setTimeout(() => { b.textContent = old; }, 1600);
+  });
+});
+
+/* ASCII field: raw characters on the left resolve into ordered rows on the right */
+(() => {
+  const c = document.getElementById('field'); if (!c) return;
+  const ctx = c.getContext('2d'); if (!ctx) return;
+  const CW = 8, CH = 16, RAMP = ' .:-=+*#';
+  const css = getComputedStyle(document.documentElement);
+  const col = ['--color-glyph-1','--color-glyph-2','--color-glyph-3','--color-glyph-4'].map((v) => css.getPropertyValue(v).trim());
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cols, rows, dpr, mx = -1e4, my = -1e4, t = 0, vis = true, last = 0;
+  const hash = (x, y) => { let h = x * 374761393 + y * 668265263; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+  function size() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    const r = c.getBoundingClientRect();
+    c.width = r.width * dpr; c.height = r.height * dpr;
+    cols = Math.ceil(r.width / CW); rows = Math.ceil(r.height / CH);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = '12px "JetBrains Mono", monospace'; ctx.textBaseline = 'top';
+  }
+  function draw() {
+    ctx.clearRect(0, 0, cols * CW, rows * CH);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const px = x / cols;
+      const order = px;                                   /* 0 raw, 1 resolved */
+      const noise = hash(x + Math.floor(t * 3), y);
+      const rowLine = (y % 3 === 0) ? 1 : 0.15;            /* resolved side: ordered rows */
+      let v = noise * (1 - order) + rowLine * order * (0.5 + 0.5 * hash(x >> 2, y));
+      const dx = x * CW - mx, dy = y * CH - my, d = Math.hypot(dx, dy);
+      if (d < 110) v = Math.min(1, v + (1 - d / 110) * 0.5);
+      v *= 0.35 + 0.65 * Math.min(1, px * 3 + 0.25) * (1 - Math.max(0, px - 0.5) * 0.9 + 0.45);
+      const i = Math.min(RAMP.length - 1, Math.floor(v * RAMP.length));
+      if (i < 2) continue;
+      ctx.fillStyle = col[Math.min(3, i >> 1)] ;
+      ctx.fillText(RAMP[i], x * CW, y * CH);
+    }
+  }
+  function frame(now) {
+    if (vis && now - last > 33) { t += 0.033; draw(); last = now; }
+    if (!reduce) requestAnimationFrame(frame);
+  }
+  size(); c.classList.add('live'); draw();
+  addEventListener('resize', () => { size(); draw(); });
+  if (!reduce) {
+    c.parentElement.addEventListener('pointermove', (e) => { const r = c.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; });
+    new IntersectionObserver((e) => { vis = e[0].isIntersecting; }).observe(c);
+    requestAnimationFrame(frame);
+  }
+})();
+/* terminal UI tabs: both screens are visible without script */
+(() => {
+  const root = document.getElementById('tui'); if (!root) return;
+  const tabs = [...root.querySelectorAll('[role=tab]')];
+  const show = (t) => tabs.forEach((x) => {
+    const on = x === t; x.setAttribute('aria-selected', on);
+    root.querySelector('#' + x.getAttribute('aria-controls')).hidden = !on;
+  });
+  root.classList.add('js');
+  tabs.forEach((t) => t.addEventListener('click', () => show(t)));
+  show(tabs[0]);
+})();
+</script>
+</body>
+</html>
