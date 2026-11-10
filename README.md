@@ -1,5 +1,7 @@
 # explain-deck
 
+[explain-deck.vishalx360.dev](https://explain-deck.vishalx360.dev) · [npm](https://www.npmjs.com/package/explain-deck)
+
 An agent skill and CLI that turns an explanation into a narrated slide deck: one
 self-contained HTML file that plays itself. It speaks a step, lights up the code
 lines or diagram nodes that step is about, and advances when the audio ends.

@@ -1,6 +1,6 @@
 {
   "name": "explain-deck",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Turn an explanation into a narrated, self-playing slide deck. A CLI and agent skill for Claude Code, Codex, Cursor and others.",
   "type": "module",
   "bin": {
@@ -23,6 +23,7 @@
     "kokoro-js": "^1.2.1",
     "react": "^18.3.1"
   },
+  "homepage": "https://explain-deck.vishalx360.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vishalx360/explain-deck.git"
