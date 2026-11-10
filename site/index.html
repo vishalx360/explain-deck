@@ -20,6 +20,7 @@
       <a href="#ui">Terminal UI</a>
       <a href="#kinds">Slides</a>
       <a href="#speech">Speech</a>
+      <a href="#share">Sharing</a>
     </span>
     <a class="key key--sm" href="https://github.com/vishalx360/explain-deck">GitHub</a>
   </div>
@@ -43,7 +44,7 @@
       </div>
     </div>
     <div class="shot cut">
-      <img src="./player.jpg" width="2000" height="1138" alt="The explain-deck player showing a diagram slide, with the slide list on the left, two nodes lit, and the narration line and controls below.">
+      <iframe src="./demo.html" title="Live demo: an explain-deck deck explaining how explain-deck works" allow="autoplay; fullscreen" allowfullscreen loading="eager"></iframe>
     </div>
   </div>
 </section>
@@ -57,7 +58,7 @@
       <div class="pane cut graphite">
         <span class="label">You ask</span>
         <pre><span class="token">/explain-deck</span> how does the ingestion pipeline choose a parser?</pre>
-        <span class="label">The agent reads the real code, writes a deck.json, and builds</span>
+        <span class="label">Your agent writes deck.json and builds</span>
         <pre class="muted-g">$ npx -y explain-deck@1 build ingestion/deck.json
 <span class="token">ingestion/ingestion.html</span></pre>
       </div>
@@ -65,7 +66,7 @@
         <h3>A deck that plays itself</h3>
         <ol>
           <li>It speaks one step.</li>
-          <li>It lights the lines or diagram nodes that step is about.</li>
+          <li>It lights what that step is about.</li>
           <li>It moves on when the audio ends.</li>
         </ol>
       </div>
@@ -79,8 +80,8 @@
       <h2>Every deck you have built, in one terminal screen</h2>
       <p class="lead" style="margin-top:var(--space-lg);color:var(--color-ink-2)">Run <code class="inline">explain-deck</code> with no arguments.</p>
       <dl class="uikeys">
-        <dt>Decks</dt><dd>Open one in the browser, reveal it in Finder, drop it from the list, or import older decks from a folder.</dd>
-        <dt>Models</dt><dd>See which of the five Kokoro builds are downloaded. Switch, delete, change voice and speed, or play a sample.</dd>
+        <dt>Decks</dt><dd>Open, reveal, remove, or import older decks.</dd>
+        <dt>Models</dt><dd>Switch builds, delete weights, set voice and speed, play a sample.</dd>
       </dl>
     </div>
     <div class="tui cut graphite" id="tui">
@@ -93,7 +94,7 @@
 <span class="sel">› How a parser is chosen     8       4m 12s     6.1 MB   today    </span>
   Why the cache key changed  6       3m 05s     4.7 MB   yesterday
   Reading the billing diff   9       5m 40s     7.3 MB   3 days ago</pre>
-<p class="hint muted-g">sample rows. ↑↓ move, enter open, f reveal, d remove, s import folder, tab switch, q quit</p>
+<p class="hint muted-g">sample rows</p>
       </div>
       <div class="panel" role="tabpanel" id="p-models" aria-labelledby="tab-models">
 <pre class="screen"><span class="muted-g">  BUILD       STATE               SIZE     NOTE</span>
@@ -104,7 +105,7 @@
   ONNX q8     not downloaded      -        a quarter of the size
 
   Voice <b>af_heart</b>   Speed <b>1</b></pre>
-<p class="hint muted-g">↑↓ move, enter use, x delete, v voice, e speed, p preview, tab switch, q quit</p>
+<p class="hint muted-g">Enter makes a build the default.</p>
       </div>
     </div>
   </div>
@@ -118,11 +119,11 @@
     <table class="ledger">
       <thead><tr><th scope="col">Slide</th><th scope="col">Written as</th><th scope="col">What a step lights</th></tr></thead>
       <tbody>
-        <tr><td>code</td><td class="mono"><code>"lit": "3,7,10-12"</code></td><td>Line numbers inside the snippet</td></tr>
-        <tr class="on"><td>mermaid</td><td class="mono"><code>"lit": ["selector waits"]</code></td><td>Nodes, by id or a fragment of the label</td></tr>
-        <tr><td>bullets</td><td class="mono"><code>"lit": [1]</code></td><td>One point, the rest stay in view</td></tr>
-        <tr><td>tree</td><td class="mono"><code>"lit": "2-4"</code></td><td>Rows of a folder tree</td></tr>
-        <tr><td>image</td><td class="mono"><code>"lit": [10, 20, 40, 30]</code></td><td>A region of a screenshot</td></tr>
+        <tr><td>code</td><td class="mono"><code>"lit": "3,7,10-12"</code></td><td>Snippet lines</td></tr>
+        <tr class="on"><td>mermaid</td><td class="mono"><code>"lit": ["selector waits"]</code></td><td>Diagram nodes</td></tr>
+        <tr><td>bullets</td><td class="mono"><code>"lit": [1]</code></td><td>One point</td></tr>
+        <tr><td>tree</td><td class="mono"><code>"lit": "2-4"</code></td><td>Tree rows</td></tr>
+        <tr><td>image</td><td class="mono"><code>"lit": [10, 20, 40, 30]</code></td><td>A screenshot region</td></tr>
       </tbody>
     </table>
   </div>
@@ -132,7 +133,7 @@
   <div class="container split">
     <div>
       <h2>Spoken on your machine</h2>
-      <p class="lead" style="margin-top:var(--space-lg);color:var(--color-ink-2)">Kokoro-82M runs locally, so your code never leaves it.</p>
+      <p class="lead" style="margin-top:var(--space-lg);color:var(--color-ink-2)">Kokoro-82M runs locally. Your code never leaves it.</p>
       <p class="label" style="margin-top:var(--space-xl);font:500 var(--text-sm)/1 var(--font-display);color:var(--color-muted)">init installs the skill into</p>
       <ul class="agents" aria-label="Agents it installs into">
         <li>Claude Code</li><li>Codex</li><li>Cursor</li><li>Gemini CLI</li><li>GitHub Copilot</li><li>OpenCode</li><li>Windsurf</li><li>Amp</li>
@@ -155,6 +156,25 @@
   </div>
 </section>
 
+<section class="band" id="share">
+  <div class="container split">
+    <div>
+      <h2>Share it as a Claude artifact</h2>
+      <p class="lead" style="margin-top:var(--space-lg);color:var(--color-ink-2)">Ask your agent to host the deck in an artifact and it publishes the one HTML file.</p>
+      <div class="cut graphite say"><code><span class="token">/explain-deck</span> host this in an artifact</code></div>
+      <p class="note">Elsewhere it is still one file: any static host, or an email.</p>
+    </div>
+    <table class="ledger">
+      <thead><tr><th scope="col">Check</th><th scope="col">What happens</th></tr></thead>
+      <tbody>
+        <tr><td>Size</td><td>Decks run 5 to 8 MB; the limit is 16 MB.</td></tr>
+        <tr class="on"><td>Name</td><td>The <code class="inline">page_title</code> becomes its name.</td></tr>
+        <tr><td>Privacy</td><td>Private until you share it.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <section class="band close">
   <div class="container">
     <div>
@@ -167,7 +187,7 @@
     <div class="keys cut">
       <div><span class="keycap">space</span><span class="t">pause</span></div>
       <div><span class="keycap">← →</span><span class="t">move between steps</span></div>
-      <div><span class="keycap">M</span><span class="t">mute, and the deck keeps advancing</span></div>
+      <div><span class="keycap">M</span><span class="t">mute</span></div>
       <div><span class="keycap">S</span><span class="t">show the slide list</span></div>
     </div>
   </div>
