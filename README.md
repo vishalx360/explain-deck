@@ -21,7 +21,7 @@ Cursor, Gemini CLI, GitHub Copilot, OpenCode, Windsurf, Amp). Restart the agent,
 then ask it:
 
 ```
-/explain how does the ingestion pipeline choose a parser?
+/explain-deck how does the ingestion pipeline choose a parser?
 ```
 
 `--agent claude-code,codex` limits the install to the agents you name.

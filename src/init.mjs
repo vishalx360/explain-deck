@@ -1,9 +1,9 @@
 /**
- * Install the explain skill for every coding agent on this machine.
+ * Install the explain-deck skill for every coding agent on this machine.
  *
  *   explain-deck init [--agent claude-code,codex,...]
  *
- * SKILL.md is written once to ~/.agents/skills/explain, the shared folder that
+ * SKILL.md is written once to ~/.agents/skills/explain-deck, the shared folder that
  * Codex, Cline and others read directly. Agents with their own folder get a
  * symlink to it, so there is one copy to update. The folder layout matches the
  * `skills` CLI (npx skills add), so the two installers never fight.
@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const NAME = "explain";
+const NAME = "explain-deck";
 
 const home = os.homedir();
 const config = process.env.XDG_CONFIG_HOME || path.join(home, ".config");

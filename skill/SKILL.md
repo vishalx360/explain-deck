@@ -1,6 +1,6 @@
 ---
-name: explain
-description: Turn an explanation into a narrated slide deck that plays itself in the browser - spoken audio per step, synced to highlighted code, mermaid diagrams, folder trees and screenshots, exported as one self-contained HTML file. Use this whenever the user runs /explain, or asks to be walked through / talked through / shown how something works, wants a narrated or visual or audio explanation, a video or presentation or walkthrough of code, a plan, a diff, a PR, or a file. Prefer this over a wall of text whenever the user says they want to see or hear the explanation rather than read it. Also use it when the user asks to host, share or publish an explainer deck or presentation as an artifact (see Hosting a deck as an artifact).
+name: explain-deck
+description: Turn an explanation into a narrated slide deck that plays itself in the browser - spoken audio per step, synced to highlighted code, mermaid diagrams, folder trees and screenshots, exported as one self-contained HTML file. Use this whenever the user runs /explain-deck, or asks to be walked through / talked through / shown how something works, wants a narrated or visual or audio explanation, a video or presentation or walkthrough of code, a plan, a diff, a PR, or a file. Prefer this over a wall of text whenever the user says they want to see or hear the explanation rather than read it. Also use it when the user asks to host, share or publish an explainer deck or presentation as an artifact (see Hosting a deck as an artifact).
 ---
 
 # Explain
